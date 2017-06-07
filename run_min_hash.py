@@ -30,110 +30,151 @@ The program follows these steps:
    - Display pairs of documents / signatures with similarity greater than a
      threshold.
 """
+#############################
+# Python Default Libraries.
+#############################
 from __future__ import division
+
 import sys
-import random
 import time
+import random
 import binascii
-# from bisect import bisect_right
-# from heapq import heappop, heappush
 
 # This is the number of components in the resulting MinHash signatures.
 # Correspondingly, it is also the number of random hash functions that
 # we will need in order to calculate the MinHash.
-num_hashes = 10
+try:
+    num_hashes = sys.argv[2]
+except:
+    num_hashes = 10
 
 # You can run this code for different portions of the dataset.
 # It ships with data set sizes 100, 1000, 2500, and 10000.
-num_docs = 1000
-data_file = "./data/articles_" + str(num_docs) + ".train"
-truth_file = "./data/articles_" + str(num_docs) + ".truth"
-
-# =============================================================================
-#                  Parse The Ground Truth Tables
-# =============================================================================
-# Build a dictionary mapping the document IDs to their plagiaries, and vice-
-# versa.
-plagiaries = dict()
-
-with open(truth_file, "rU") as f:
-    for line in f:
-        # Strip the newline character, if present.
-        if line[-1] == '\n':
-            line = line[0:-1]
-        docs = line.split(" ")
-
-    # Map the two documents to each other.
-    plagiaries[docs[0]] = docs[1]
-    plagiaries[docs[1]] = docs[0]
+try:
+    num_docs = sys.argv[3]
+except:
+    num_docs = 1000
 
 
-# =============================================================================
-#               Convert Documents To Sets of Shingles
-# =============================================================================
+class MinHash(object):
+    """
+    Class to club all MinHash related operations.
 
-print "Shingling articles..."
+    args:
+    ~~~~~
+    :param data_file:
+    :param truth_file:
+    """
 
-# The current shingle ID value to assign to the next new shingle we
-# encounter. When a shingle gets added to the dictionary, we'll increment this
-# value.
-# curShingleID = 0
+    def __init__(self, *args, **kwargs):
+        """
+        Default constructor for initializing variables and file assignment.
 
-# Create a dictionary of the articles, mapping the article identifier (e.g.,
-# "t8470") to the list of shingle IDs that appear in the document.
-doc_as_shingle_sets = dict()
-
-with open(data_file, 'rU') as f:
-    doc_names = list()
-    t0 = time.time()
-    total_shingles = 0
-
-    for i in xrange(num_docs):
-        # Read all of the words (they are all on one line) and split them by
-        # white space.
-        words = f.readline().split(' ')
-
-        # Retrieve the article ID, which is the first word on the line.
-        doc_id = words[0]
-
-        # Maintain a list of all document IDs.
-        doc_names.append(doc_id)
-
-        del words[0]
+        :param data_file: Path file of data_file | train_file(type: basestring)
+        :param truth_file: Path file of truth_file(type: basestring)
+        """
+        # File Paths parsers.
+        data_file = './data/articles_{}.train'.format(str(num_docs))
+        truth_file = './data/articles_{}.truth'.format(str(num_docs))
+        self.data_file = kwargs.get("data_file", data_file)
+        self.truth_file = kwargs.get("truth_file", truth_file)
 
         '''
-        'shingles_in_doc' will hold all of the unique shingle IDs present in
-        the current document. If a shingle ID occurs multiple times in the
-        document, it will only appear once in the set
-        (this is a property of Python sets).
+        =======================================================================
+                         Parse The Ground Truth Tables
+        =======================================================================
+        Build a dictionary mapping the document IDs to their plagiaries,
+        and vice-versa.
         '''
-        shingles_in_doc = set()
 
-        # For each word in the document...
-        for index in range(0, len(words) - 2):
-            # Construct the shingle text by combining three words together.
-            shingle = words[index] + " " + words[index + 1] + " " + words[index + 2]
+        # Variable initialization
+        self.plagiaries = dict()
 
-        # Hash the shingle to a 32-bit integer.
-        crc = binascii.crc32(shingle) & 0xffffffff
+    def file_handler(self, *args, **kwargs):
+        """File Handler method."""
+        truth_file = kwargs.get("truth_file", self.truth_file)
+        with open(truth_file, 'rU') as truth_file:
+            for line in truth_file:
+                # Strip the newline character, if present.
+                if line[-1] == '\n':
+                    line = line[0:-1]
+                self.docs = line.split(' ')
 
+        # Map the two documents to each other.
+        self.plagiaries[self.docs[0]] = self.docs[1]
+        self.plagiaries[self.docs[1]] = self.docs[0]
+
+    def shingling_articles(self, *args, **kwargs):
+        """
+        Convert Documents To Sets of Shingles.
+
+        args:
+        ~~~~~
+
+        Returns:
+        ~~~~~~~~
+
+        """
         '''
-        Add the hash value to the list of shingles for the current document.
-        Note that set objects will only add the value to the set if the set
-        doesn't already contain it.
-        '''
-        shingles_in_doc.add(crc)
+        The current shingle ID value to assign to the next new shingle we
+        encounter. When a shingle gets added to the dictionary,
+        we'll increment this value.
+        # curShingleID = 0
 
+        Create a dictionary of the articles, mapping the article identifier
+        (e.g., "t8470") to the list of shingle IDs that appear in the document.
         '''
-        Store the completed list of shingles for this document in the
-        dictionary.
-        '''
-        doc_as_shingle_sets[doc_id] = shingles_in_doc
+        doc_as_shingle_sets = dict()
+        data_file = kwargs.get("data_file", self.data_file)
+        with open(data_file, 'rU') as data_file:
+            doc_names = list()
 
-        # Count the number of shingles across all documents.
-        total_shingles = total_shingles + (len(words) - 2)
+            for _ in xrange(num_docs):
+                '''
+                Read all of the words (they are all on one line) and
+                split them by white space.
+                '''
+                words = data_file.readline().split(' ')
 
-print '\nAverage shingles per doc: %.2f' % (total_shingles / num_docs)
+                # Retrieve the article ID, which is the first word on the line.
+                doc_id = words[0]
+
+                # Maintain a list of all document IDs.
+                doc_names.append(doc_id)
+
+                del words[0]
+
+                '''
+                'shingles_in_doc' will hold all of the unique shingle IDs
+                present in the current document. If a shingle ID occurs
+                multiple times in the document, it will only appear once
+                in the set (this is a property of Python sets | HashSets).
+                '''
+                shingles_in_doc = set()
+
+                # For each word in the document...
+                for index in xrange(len(words) - 2):
+                    '''
+                    Construct the shingle text by combining three words
+                    together.
+                    '''
+                    shingle = words[index] + " " + words[index + 1] + " " + words[index + 2]
+
+                    # Hash the shingle to a 32-bit integer.
+                    crc = binascii.crc32(shingle) & 0xffffffff
+
+                    '''
+                    Add the hash value to the list of shingles for the current
+                    document. Note: that set objects will only add the value
+                    to the set if the set doesn't already contain it.
+                    '''
+                    shingles_in_doc.add(crc)
+
+                '''
+                Store the completed list of shingles for this document in the
+                dictionary.
+                '''
+                doc_as_shingle_sets[doc_id] = shingles_in_doc
 
 # =============================================================================
 #                     Define Triangle Matrices

@@ -36,7 +36,6 @@ The program follows these steps:
 from __future__ import division
 
 import sys
-import time
 import random
 import binascii
 
@@ -235,9 +234,6 @@ def get_triangle_index(i, j, *args, **kwargs):
 if num_docs <= 2500:
     print "\nCalculating Jaccard Similarities..."
 
-    # Time the calculation.
-    t0 = time.time()
-
     # For every document pair...
     for i in range(0, num_docs):
         # Print progress every 100 documents.
@@ -255,9 +251,6 @@ if num_docs <= 2500:
         perform = (len(s1.intersection(s2)) / float(len(s1.union(s2))))
         JSim[get_triangle_index(i, j)] = perform
 
-    # Calculate the elapsed time (in seconds)
-    elapsed = (time.time() - t0)
-
     print "\nCalculating all Jaccard Similarities took %.2fsec" % elapsed
 
 # Delete the Jaccard Similarities, since it's a pretty big matrix.
@@ -267,8 +260,6 @@ del JSim
 #                 Generate MinHash Signatures
 # =============================================================================
 
-# Time this step.
-t0 = time.time()
 
 print '\nGenerating random hash functions...'
 
@@ -357,21 +348,14 @@ for doc_id in doc_names:
     # Store the MinHash signature for this document.
     signatures.append(signature)
 
-# Calculate the elapsed time (in seconds)
-elapsed = (time.time() - t0)
-
-print "\nGenerating MinHash signatures took %.2fsec" % elapsed
 
 # =============================================================================
 #                     Compare All Signatures
 # =============================================================================
 
-print '\nComparing all signatures...'
-
 # Creates a N x N matrix initialized to 0.
 
 # Time this step.
-t0 = time.time()
 
 # For each of the test documents...
 for i in range(0, num_docs):
@@ -391,11 +375,6 @@ for i in range(0, num_docs):
     # Record the percentage of positions which matched.
     estJSim[get_triangle_index(i, j)] = (count / num_hashes)
 
-# Calculate the elapsed time (in seconds)
-elapsed = (time.time() - t0)
-
-print "\nComparing MinHash signatures took %.2fsec" % elapsed
-
 # =============================================================================
 #                   Display Similar Document Pairs
 # =============================================================================
@@ -405,11 +384,6 @@ tp = 0
 fp = 0
 
 threshold = 0.5
-print "\nList of Document Pairs with J(d1,d2) more than", threshold
-print "Values shown are the estimated Jaccard similarity and the actual"
-print "Jaccard similarity.\n"
-print "                   Est. J   Act. J"
-
 # For each of the document pairs...
 for i in range(0, num_docs):
     for j in range(i + 1, num_docs):
